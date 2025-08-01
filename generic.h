@@ -24,6 +24,31 @@ public:
     head = nullptr;
     
 }
+void insertAtFirst(T val){
+        Node<T>* newNode = new Node<T>(val);
+        newNode->next = head;
+        head = newNode;
+    }
+
+    void deleteNode(T val){
+        if (!head) return;
+        if(head->data == val){
+            Node<T>* temp = head;
+            head = head->next;
+            delete temp;
+            return;
+        }
+
+        Node<T>* current = head;
+        while(current->next && current->next->data != val){
+            current = current->next;
+        }
+        if(current->next){
+            Node<T>* temp = current->next;
+            current->next = current->next->next;
+            delete temp;
+        }
+    }
 void insertAtEnd(T val){
     Node<T>* newNode = new Node<T>(val);
     if(!head){
