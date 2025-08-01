@@ -10,7 +10,7 @@ public:
     Node* next;
     Node(T val){
         data = val;
-        next = nullptr;
+        next = NULL;
     }
 };
 
@@ -24,31 +24,6 @@ public:
     head = nullptr;
     
 }
-void insertAtFirst(T val){
-        Node<T>* newNode = new Node<T>(val);
-        newNode->next = head;
-        head = newNode;
-    }
-
-    void deleteNode(T val){
-        if (!head) return;
-        if(head->data == val){
-            Node<T>* temp = head;
-            head = head->next;
-            delete temp;
-            return;
-        }
-
-        Node<T>* current = head;
-        while(current->next && current->next->data != val){
-            current = current->next;
-        }
-        if(current->next){
-            Node<T>* temp = current->next;
-            current->next = current->next->next;
-            delete temp;
-        }
-    }
 void insertAtEnd(T val){
     Node<T>* newNode = new Node<T>(val);
     if(!head){
@@ -56,7 +31,7 @@ void insertAtEnd(T val){
     }
     else{
         Node<T>* temp = head;
-        while(temp->next!=nullptr){
+        while(temp->next!=NULL){
             temp = temp->next;
     }
         temp->next = newNode;
@@ -65,7 +40,7 @@ void insertAtEnd(T val){
 void display(){
     Node<T>* temp=head;
 
-    while(temp != nullptr){
+    while(temp != NULL){
         cout<< temp->data <<" -> ";
         temp=temp->next;
 
