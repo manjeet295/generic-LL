@@ -3,7 +3,7 @@
 using namespace std;
 
 int main() {
-    Hash<int, string> h1(5);
+    HashMap<int, char*> h1(5);
     h1.insert(1, "Apple");
     h1.insert(2, "Banana");
     h1.insert(3,"changed");
@@ -17,6 +17,7 @@ int main() {
     cout << h1.get(5) << endl;
     cout << h1.get(6) << endl;
      h1.remove(2);
+     h1.display();
 
 
   

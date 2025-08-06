@@ -1,137 +1,131 @@
-#ifndef HashMap_H
-#define HashMap_H
-#include<iostream>
+#ifndef HASHMAP_H
+#define HASHMAP_H
 
-
+#include <iostream>
+#include "linkedl.h" 
 using namespace std;
-template<typename T,typename T1>
 
-class Node{
-public:
-    T key;
-    T1 value;
-    Node<T,T1>* next;
-        
-    Node(){
-        next = NULL;
-    }
-    Node(T key, T1 value){
-        this->key=key;
-        this->value=value;
-        next = NULL;
-    }
-};
 template<typename T,typename T1>
-class Hash{
-
+class HashMap{
+private:
     int size;
-    Node<T,T1>** arr;
     int count;
-        public:
-    Hash(int s){
+    LinkedList<T,T1>* arr;
+
+public:
+    HashMap(int s){
         size = s;
         count = 0;
-        arr = new Node<T,T1>*[size];
-        
+        arr = new LinkedList<T,T1>[size];
     }
+
     int hashValue(int key){
-    return key % size;
+        return key % size;
     }
 
     int hashValue(char key){
-    return key % size;
+        return key % size;
     }
 
-    int hashValue(string key){
-    int sum = 0;
-    for(char ch : key){
-        sum += ch;
+    int hashValue(const char* key){
+        int sum = 0;
+        for(int i=0;key[i]!='\0';i++){
+        sum+=key[i];
     }
-    return sum % size;
+        return sum % size;
     }
 
-    void insert(T key, T1 value){
+    void insert(T key,T1 value){
         int index = hashValue(key);
-        Node<T,T1>* newNode = arr[index];
-        if(newNode==NULL){
-            arr[index] = new Node<T,T1>(key,value);
-            count++;
-        if((float)count/size>0.75){
+        Node<T, T1>* temp=arr[index].getHead();
+        while(temp != NULL){
+            if(temp->key==key){
+                temp->value = value;
+                return;
+            }
+            temp = temp->next;
+        }
+        arr[index].insertAtFirst(key,value);
+        count++;
+        if((float)count / size > 0.75){
             resize();
         }
-            return;
-        }
-        
-        while(newNode->next != NULL){
-            if(newNode->key==key){
-                newNode->value = value;
-                return;
-            }
-            newNode = newNode->next;
-        }
-        Node<T,T1>* temp = new Node<T,T1>(key,value);
-        newNode->next = temp;
-        // count++;
-        // if((float)count/size>0.75){
-        //     resize();
-        // }
-
     }
+
     void resize(){
-        int s = size;
+        int oldSize = size;
         size *= 2;
-        Node<T,T1>** sarr = arr;
-        arr = new Node<T,T1>*[size];
-        for(int i = 0; i < size; i++){
-        arr[i] = NULL;
-    }
-        int oldc = count;
-        count=0;
-        for(int i = 0 ; i < s ; i++){
-            Node<T,T1>* temp = sarr[i];
-            while(temp!=NULL){
-                insert(temp->key,temp->value);
-                temp=temp->next;
+        LinkedList<T, T1>* oldarr = arr;
+        arr = new LinkedList<T, T1>[size];
+        count = 0;
+        for(int i = 0; i < oldSize;i++){
+            Node<T, T1>* head = oldarr[i].getHead();
+            while(head!=NULL){
+                insert(head->key,head->value);
+                head = head->next;
             }
-
         }
-        count = oldc;
-        printf("resized\n");
+
+        delete[] oldarr;
+        cout << "Resized to size " << size << endl;
     }
+
     void remove(T key){
         int index = hashValue(key);
-        Node<T,T1>* current = arr[index];
+        Node<T,T1>* temp = arr[index].getHead();
         Node<T,T1>* prev = NULL;
-        while(current != NULL){
-            if(current->key==key){
-                if(prev!=NULL){
-                    prev->next = current->next;
 
+        while(temp != NULL){
+            if(temp->key == key){
+                if(prev == NULL){
+                    arr[index].deleteAtFirst();
                 }
                 else{
-                    arr[index] = current->next;
+                    Node<T,T1>* del = prev->next;
+                    prev->next = temp->next;
+                    delete del;
                 }
-                delete current;
+                count--;
                 return;
             }
-            prev = current;
-            current = current->next;
+            prev = temp;
+            temp = temp->next;
         }
-
     }
+
     T1 get(T key){
         int index = hashValue(key);
-        Node<T,T1>* newNode = arr[index];
-        while(newNode!=NULL){
-            if(newNode->key == key){
-                return newNode->value;
+        Node<T,T1>* temp = arr[index].getHead();
+        while(temp != NULL){
+            if(temp->key == key){
+                return temp->value;
             }
-            newNode = newNode->next;
+            temp = temp->next;
         }
         return T1();
     }
 
-};
+    bool containsKey(T key){
+        int index = hashValue(key);
+        Node<T,T1>* temp = arr[index].getHead();
+        while(temp != NULL){
+            if(temp->key == key) return true;
+            temp = temp->next;
+        }
+        return false;
+    }
 
+    void display() {
+        for(int i = 0; i < size; ++i){
+            cout << "Bucket " << i << ": ";
+            arr[i].display();
+        }
+    }
+
+    ~HashMap() {
+    delete[] arr;
+}
+
+};
 
 #endif
