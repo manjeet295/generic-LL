@@ -4,6 +4,7 @@
 #include <ctime>
 #include <fstream>
 #include <cstring>
+#include <cctype>
 #include "../hashtable/hash.h"
 #include "../generic.h"
 
@@ -13,54 +14,52 @@ int visited = 0;
 int depth;
 int totallinks = 10;
 
-HashMap<char*, char*> mp(1000); 
+HashMap<char*, char*> mp(1000);
+HashMap<char*, List<char*>> keywordIndexMap(1000);
+List<char*> allKeywords;
 List<char*> l1;
 
 const char* correctwords[] = {
-    "a", "about", "above", "after", "again", "against", "all", "am", "an", "and",
-    "any", "are", "as", "at", "be", "because", "been", "before", "being", "below",
-    "between", "both", "but", "by", "can", "did", "do", "does", "doing", "down",
-    "during", "each", "few", "for", "from", "further", "had", "has", "have", "having",
-    "he", "her", "here", "hers", "herself", "him", "himself", "his", "how", "i",
-    "if", "in", "into", "is", "it", "its", "itself", "me", "more", "most", "my",
-    "myself", "no", "nor", "not", "of", "off", "on", "once", "only", "or", "other",
-    "our", "ours", "ourselves", "out", "over", "own", "same", "she", "should", "so",
-    "some", "such", "than", "that", "the", "their", "theirs", "them", "themselves",
-    "then", "there", "these", "they", "this", "those", "through", "to", "too",
-    "under", "until", "up", "very", "was", "we", "were", "what", "when", "where",
-    "which", "while", "who", "whom", "why", "with", "you", "your", "yours",
-    "yourself", "yourselves"
+    "a","about","above","after","again","against","all","am","an","and",
+    "any","are","as","at","be","because","been","before","being","below",
+    "between","both","but","by","can","did","do","does","doing","down",
+    "during","each","few","for","from","further","had","has","have","having",
+    "he","her","here","hers","herself","him","himself","his","how","i",
+    "if","in","into","is","it","its","itself","me","more","most","my",
+    "myself","no","nor","not","of","off","on","once","only","or","other",
+    "our","ours","ourselves","out","over","own","same","she","should","so",
+    "some","such","than","that","the","their","theirs","them","themselves",
+    "then","there","these","they","this","those","through","to","too",
+    "under","until","up","very","was","we","were","what","when","where",
+    "which","while","who","whom","why","with","you","your","yours",
+    "yourself","yourselves"
 };
 const int correctsize = sizeof(correctwords) / sizeof(correctwords[0]);
 
-class urlvalid 
-{
+class urlvalid {
 public:
     static bool isvalid(const char* url) {
         return strncmp(url, "http://", 7) == 0 || strncmp(url, "https://", 8) == 0;
     }
 };
 
-class createpath
-{
+class createpath {
 public:
     static void getcurDir(char* path, int size){
         _getcwd(path, size);
     }
-
     static void joinpath(char* path, const char* fol){
         strcat(path, "\\");
         strcat(path, fol);
     }
 };
 
-class downloading{
+class downloading {
 public:
     void genfilename(char* filename){
         time_t now = time(0);
         sprintf(filename, "%d.html", (int)now);
     }
-
     void download(const char* url, const char* folder, const char* filename){
         char fullPath[1000];
         createpath::getcurDir(fullPath, sizeof(fullPath));
@@ -94,66 +93,58 @@ public:
     }
 
     static void normalizeURL(const char* base, const char* rel, char* curl) {
-    if (strncmp(rel, "http://", 7) == 0 || strncmp(rel, "https://", 8) == 0) {
-        strcpy(curl, rel);
-    }
-    else if (rel[0] == '/') {
-
-        const char* start = strstr(base, "://");
-        if (start) {
-            start += 3;
-            int len = 0;
-            while (start[len] != '\0' && start[len] != '/') len++;
-
-            strncpy(curl, base, start - base + len);
-            curl[start - base + len] = '\0';
-            strcat(curl, rel);
-        } else {
+        if (strncmp(rel, "http://", 7) == 0 || strncmp(rel, "https://", 8) == 0) {
             strcpy(curl, rel);
         }
-    } else {
-        strcpy(curl, base);
-        for (int i = strlen(curl) - 1; i >= 0; i--) {
-            if (curl[i] == '/') {
-                curl[i + 1] = '\0';
-                break;
+        else if (rel[0] == '/') {
+            const char* start = strstr(base, "://");
+            if (start) {
+                start += 3;
+                int len = 0;
+                while (start[len] != '\0' && start[len] != '/') len++;
+                strncpy(curl, base, start - base + len);
+                curl[start - base + len] = '\0';
+                strcat(curl, rel);
+            } else {
+                strcpy(curl, rel);
             }
+        } else {
+            strcpy(curl, base);
+            for (int i = strlen(curl) - 1; i >= 0; i--) {
+                if (curl[i] == '/') {
+                    curl[i + 1] = '\0';
+                    break;
+                }
+            }
+            strcat(curl, rel);
         }
-        strcat(curl, rel);
     }
-}
-
-
-
 
     static void extractLinks(const char* filepath){
         ifstream file(filepath);
         if(!file) return;
-        char line[2000];
-        while (file.getline(line, sizeof(line))) {
-            char* pos = line;
-            
 
-            char* atag= strstr(pos,"<a");
-            while (atag != NULL) {
+        char line[2000];
+        while(file.getline(line, sizeof(line))){
+            char* pos = line;
+            char* atag = strstr(pos,"<a");
+
+            while(atag != NULL){
                 char* start = strstr(atag, "href=\"");
-                if(start!=NULL){
+                if(start != NULL){
+
                     start += 6;
                     char* end = strchr(start, '"');
                     if(end != NULL && end > start){
-                        int len = end-start;
-                        
-                            char* link = new char[len + 1];
+                        int len = end - start;
+                        char* link = new char[len + 1];
+                        strncpy(link, start, len);
+                        link[len] = '\0';
+                        if(endsWithHTML(link)){
 
-                            strncpy(link, start, len);
-                            link[len] = '\0';
-
-                            if(endsWithHTML(link)){
-                                l1.insertAtEnd(link);
-                                
-                            }
+                            l1.insertAtEnd(link);
+                        }
                     }
-                    
                 }
                 atag = strstr(atag+2,"<a");
             }
@@ -162,12 +153,116 @@ public:
         file.close();
     }
 
+    bool iscorrectword(const char* word){
+
+
+        for(int i = 0 ; i < correctsize ; i++){
+            if(strcmp(word , correctwords[i])==0){
+
+                return false;
+        }
+        }
+        return true;
+    }
+
+    void extractwords(const char* filepath,char* words[],HashMap<char*,int>& mfreq,int& wordcount){
+
+        ifstream file(filepath);
+        if(!file) return;
+
+        char line[2000];
+        char current[100];
+        int curLen = 0;
+
+        bool inTag = false;
+        wordcount = 0;
+
+        while(file.getline(line, sizeof(line))){
+
+
+            for(int i = 0; line[i] != '\0'; i++){
+                char ch = line[i];
+
+                if(ch == '<'){
+
+                    inTag = true;
+                }
+                else if(ch == '>'){
+                    inTag = false;
+                }
+                else if(!inTag){
+                    if(isalnum(ch)){
+
+                        
+                        if(curLen < 99){
+                            current[curLen++] = tolower(ch);
+                        }
+                    }
+                    else if(curLen > 0){
+                        current[curLen] = '\0';
+                        char* word = new char[curLen + 1];
+                        strcpy(word, current);
+                        words[wordcount++] = word;
+                        if(mfreq.containsKey(word)){
+                            int val = mfreq.get(word);
+                            mfreq.insert(word,val+1); 
+                        } else {
+                            mfreq.insert(word,1);
+                        }
+                        curLen = 0;
+                    }
+                }
+            }
+        }
+        file.close();
+    }
+
+    void filtercorrectwords(char* allWords[], int wordCount, char* filtered[], int& filteredCount) {
+        filteredCount = 0;
+        for(int i = 0; i < wordCount; i++){
+            if(iscorrectword(allWords[i])){
+                filtered[filteredCount++] = allWords[i];
+            }
+        }
+    }
+
+    void addKeywordToIndex(const char* keyword, const char* url) {
+        char lowerKey[100];
+        int len = strlen(keyword);
+
+
+        for(int i = 0; i < len; i++){
+            lowerKey[i]=tolower(keyword[i]);
+        }
+        lowerKey[len] = '\0';
+
+        if(!keywordIndexMap.containsKey(lowerKey)){
+
+            List<char*> newList;
+
+            newList.insertAtEnd(strdup(url));
+
+            keywordIndexMap.insert(strdup(lowerKey), newList);
+            allKeywords.insertAtEnd(strdup(lowerKey));
+        } else {
+            List<char*> urls = keywordIndexMap.get(lowerKey);
+            bool exists = false;
+            for (int i = 0; i < urls.length(); i++) {
+                if (strcmp(urls.getAt(i), url) == 0) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) {
+                urls.insertAtEnd(strdup(url));
+                keywordIndexMap.insert(strdup(lowerKey), urls);
+            }
+        }
+    }
+
     void dfs(char* url, int curDepth, downloading& downloader, const char* folder){
         if(curDepth > depth || visited >= totallinks) return;
-
-        if (mp.containsKey((char*)url)) {
-            return;
-        }
+        if (mp.containsKey((char*)url)) return;
 
         char filename[100];
         downloader.genfilename(filename);
@@ -183,102 +278,93 @@ public:
         visited++;
 
         extractLinks(fullPath);
+
+
+        HashMap<char*,int> mfreq(1000);
         char* allWords[1000];
         int wordCount = 0;
-        extractwords(fullPath, allWords, wordCount);
+        extractwords(fullPath, allWords, mfreq, wordCount);
 
         char* validWords[1000];
         int validCount = 0;
         filtercorrectwords(allWords, wordCount, validWords, validCount);
-  
-        cout << "Valid words in : " << url << endl;
-        for (int i = 0; i < validCount; ++i) {
-            cout << validWords[i] << " ";
+
+
+        char* keyword = nullptr;
+        int maxFreq = 0;
+        for (int i = 0; i < validCount; i++) {
+            int freq = mfreq.get(validWords[i]);
+            if (freq > maxFreq) {
+                maxFreq = freq;
+                keyword = validWords[i];
+            }
         }
-        cout << endl << "Total valid words: " << validCount << endl;
+
+        if (keyword) {
+            cout << "Keyword for " << url << " : " << keyword << " (freq: " << maxFreq << ")\n";
+            addKeywordToIndex(keyword, url);
+        }
 
         int n = l1.length();
-        for(int i = 0; i<n && visited<totallinks; i++){
+        for(int i = 0; i < n && visited < totallinks; i++){
             char* rel = l1.getAt(i);
             char curl[1000];
             normalizeURL(url, rel, curl);
             dfs(curl, curDepth + 1, downloader, folder);
         }
     }
-    bool iscorrectword(const char* word){
-        for(int i = 0 ; i < correctsize ; i++){
-            if(strcmp(word , correctwords[i])==0){
-                return false;
-            }
-        }
-        return true;
-    }
-    void extractwords(const char* filepath,char* words[],int& wordcount){
-    ifstream file(filepath);
-    if(!file) return;
-    char line[2000];
-    char current[100];
-    int curLen = 0;
-    bool inTag = false;
-    wordcount = 0;
-
-    while(file.getline(line, sizeof(line))){
-        for(int i = 0; line[i] != '\0'; i++){
-            char ch = line[i];
-            if(ch == '<'){
-                inTag = true;
-
-            }
-            else if(ch == '>'){
-                inTag = false;
-
-
-            }
-            else if(!inTag){
-                if(isalnum(ch)){
-
-                    if(curLen < 99){
-
-                        current[curLen++] = tolower(ch);
-                    }
-                }
-                else if(curLen > 0){
-
-                    current[curLen] = '\0';
-                    char* word = new char[curLen + 1];
-                    strcpy(word, current);
-                    words[wordcount++] = word;
-                    curLen = 0;
-                }
-            }
-        }
-    }
-
-    // if (curLen > 0) {
-    //     current[curLen] = '\0';
-    //     char* word = new char[curLen + 1];
-    //     strcpy(word, current);
-    //     words[wordcount++] = word;
-    // }
-
-    file.close();
-    }
-    void filtercorrectwords(char* allWords[], int wordCount, char* filtered[], int& filteredCount) {
-    filteredCount = 0;
-    for(int i = 0; i < wordCount; i++){
-        if(iscorrectword(allWords[i])){
-            filtered[filteredCount++] = allWords[i];
-        }
-    }
-}
 };
+
+void saveKeywordIndexToFile(){
+    ofstream out("keywordIndex.txt");
+    if(!out){
+        cout << "Error opening file for writing" << endl;
+        return;
+    }
+
+    for(int i = 0; i < allKeywords.length(); i++){
+        char* key = allKeywords.getAt(i);
+        List<char*> urls = keywordIndexMap.get(key);
+        out << key << " -> ";
+        for (int j = 0; j < urls.length(); j++) {
+            out << urls.getAt(j);
+            if (j < urls.length() - 1) out << ", ";
+        }
+        out << "\n";
+    }
+    out.close();
+}
+
+// void searchKeyword() {
+//     ifstream in("keywordIndex.txt");
+//     if (!in) {
+//         cout << "file not found." << endl;
+//         return;
+//     }
+//     string query;
+//     cout << "Enter keyword to search: ";
+//     cin >> query;
+//     for (auto &c : query) c = tolower(c);
+
+//     string line;
+//     bool found = false;
+//     while (getline(in, line)) {
+//         if (line.rfind(query + " ->", 0) == 0) {
+//             cout << line << "\n";
+//             found = true;
+//         }
+//     }
+//     if (!found) {
+//         cout << "No URLs found for keyword: " << query << "\n";
+//     }
+//     in.close();
+// }
 
 int main(int argc, char* argv[]){
     cout << "Started\n";
     if(argc < 4){
         return 1;
     }
-
     char* url = argv[1];
     const char* folder = argv[2];
     depth = atoi(argv[3]);
@@ -293,5 +379,11 @@ int main(int argc, char* argv[]){
     crawler.dfs(url,0,downloader,folder);
 
     cout << "visited: " << visited << endl;
+
+    saveKeywordIndexToFile();
+
+    // cout << "\n--- Search Mode ---\n";
+    // searchKeyword();
+
     return 0;
 }

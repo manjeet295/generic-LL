@@ -1,0 +1,1 @@
+add -> https://books.toscrape.com/index.html, https://books.toscrape.com/catalogue/category/books_1/index.html

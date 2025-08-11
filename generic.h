@@ -68,11 +68,25 @@ public:
             i++;
             temp = temp->next;
         }
-        return T(); // default value if out of range
+        return T(); 
     }
 
     LNode<T>* getHead() {
         return head;
+    }
+
+
+    void deleteAtFirst() {
+        if (!head) return;
+        LNode<T>* temp = head;
+        head = head->next;
+        delete temp;
+    }
+
+    void clear() {
+        while (head != NULL) {
+            deleteAtFirst();
+        }
     }
 };
 
